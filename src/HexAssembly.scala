@@ -10,10 +10,11 @@ object HexAssembly {
     println(program("hello.hello.bye.hello"))
   }
   
-  val op = (string("+") >> produce[(Int, Int)=>Int](_+_)) <|> (string("-") >> produce[(Int, Int)=>Int](_-_))
-  val num: Parser[Int] = (digit <::> many(digit)) >>= ((is)=> produce(is.fold(0)((a,b)=>a*10 + b)))
+  type Op = (Int, Int)=>Int
+  val op: Parser[Op] = (string2Obj[Op]("+",_+_)) <|> (string2Obj[Op]("-",_-_))
+  val num: Parser[Int] = for (is <- digit <::> many(digit)) yield is.fold(0)((a,b)=>a*10 + b)
   val value: Parser[Int] = (num <|> (char('(') >> expr << char(')')))
-  val expr: Parser[Int] = (value >>= ((a)=> op >>= ((b)=> value >>= ((c)=> produce(b(a,c)))))) <|> value
+  val expr: Parser[Int] = (for( a <- value; b <- op; c <- value) yield b(a,c)) <|> value 
   
   val statement: Parser[String] = string2Obj("hello",":-)") <|> string2Obj("bye",":-(")
   val statements: Parser[List[String]] = statement <::> many(char('.') >> statement)
